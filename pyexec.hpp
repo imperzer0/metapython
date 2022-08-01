@@ -41,30 +41,70 @@ namespace py
 		{
 			log_stream << get_current_time() << FN_SIGNATURE(execute) << " compiling \n\"\"\"\n" << code << "\n\"\"\"...\n";
 			
-			auto module = Py_CompileStringObject(code, PyUnicode_FromString("@meta@"), Py_single_input, flags, optimize);
-			if (!module)
+			auto code_obj = Py_CompileStringObject(code, PyUnicode_FromString("@meta@"), Py_file_input, flags, optimize);
+			if (!code_obj)
 			{
+				PyErr_Print();
 				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't parse your code.\n";
 				return nullptr;
 			}
 			
 			
-			auto func = PyObject_GetAttrString(module, "__metagenerator__");
-			if (!func)
+			auto module = PyImport_ExecCodeModule("@meta@", code_obj);
+			if (!module)
 			{
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't find function \"__metagenerator__\".\n";
+				PyErr_Print();
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't create a module from code.\n";
 				return nullptr;
 			}
 			
-			auto object = PyObject_CallObject(func, nullptr);
+			
+			auto dict = PyModule_GetDict(module);
+			if (!dict)
+			{
+				PyErr_Print();
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " this module have no attributes.\n";
+				return nullptr;
+			}
+			
+			
+			auto func = PyDict_GetItemString(dict, "__metagenerator__");
+			if (!func)
+			{
+				PyErr_Print();
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't find function __metagenerator__.\n";
+				return nullptr;
+			}
+			
+			
+			PyObject* object;
+			
+			if (!PyCallable_Check(func))
+			{
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " <WARNING> __metagenerator__ is not a function.\n";
+				object = func;
+			}
+			else
+			{
+				object = PyObject_CallObject(func, nullptr);
+			}
+			
+			
 			if (!object)
 			{
+				PyErr_Print();
 				log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned an exception.\n";
 				return nullptr;
 			}
 			
 			
-			auto representation = PyObject_Repr(object);
+			PyObject* representation;
+			
+			if (PyUnicode_Check(object))
+				representation = PyUnicode_FromObject(object);
+			else
+				representation = PyObject_Repr(object);
+			
 			auto str = PyUnicode_AsUTF8(representation);
 			
 			if (!str)
