@@ -6,6 +6,7 @@
 #define METAPYTHON_PYCOMPILE_HPP
 
 #include <string>
+#include "pyexec.hpp"
 
 
 class pycompile
@@ -18,7 +19,7 @@ public:
 	/// Does preprocessing on file
 	inline void compile()
 	{
-		/// TODO: parse file and search for static section
+		/// TODO: parse file, search for static section and execute it
 	}
 	
 	inline ~pycompile() { }
