@@ -14,7 +14,7 @@
 
 #define STR(exp) #exp
 
-#define DECL_FUNCTION(fn_name, prefix, postfix) static constexpr const char* fn_name##_signature = STR(prefix fn_name postfix); \
+#define DECL_FUNCTION(prefix, fn_name, postfix) static constexpr const char* fn_name##_signature = STR(prefix fn_name postfix); \
 prefix fn_name postfix
 
 #define FN_SIGNATURE(name) name##_signature
@@ -37,7 +37,7 @@ namespace py
 		/// Executes python function with signature:
 		///   def __metagenerator__():string
 		/// and returns it's return
-		DECL_FUNCTION(execute, inline const char*, (const char* code, PyCompilerFlags* flags = nullptr, int optimize = 2))
+		DECL_FUNCTION(inline const char*, execute, (const char* code, PyCompilerFlags* flags = nullptr, int optimize = 2))
 		{
 			log_stream << get_current_time() << FN_SIGNATURE(execute) << " compiling \n\"\"\"\n" << code << "\n\"\"\"...\n";
 			
