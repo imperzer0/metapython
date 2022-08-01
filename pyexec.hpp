@@ -35,23 +35,29 @@ namespace py
 		pyexec(pyexec&&) = delete;
 		
 		/// Executes python function with signature:
-		///   def __generator__():string
+		///   def __metagenerator__():string
 		/// and returns it's return
-		DECL_FUNCTION(execute, inline const char*, (const char* code, PyCompilerFlags* flags = nullptr, int optimize = 1))
+		DECL_FUNCTION(execute, inline const char*, (const char* code, PyCompilerFlags* flags = nullptr, int optimize = 2))
 		{
-			auto module = Py_CompileStringExFlags(code, "@metacode@", 0, flags, optimize);
+			log_stream << get_current_time() << FN_SIGNATURE(execute) << " compiling \n\"\"\"\n" << code << "\n\"\"\"...\n";
 			
-			if (module == nullptr)
+			auto module = Py_CompileStringObject(code, PyUnicode_FromString("@meta@"), Py_single_input, flags, optimize);
+			if (!module)
 			{
 				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't parse your code.\n";
 				return nullptr;
 			}
 			
 			
-			auto func = PyObject_GetAttrString(module, "__generator__");
-			auto object = PyObject_CallNoArgs(func);
+			auto func = PyObject_GetAttrString(module, "__metagenerator__");
+			if (!func)
+			{
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't find function \"__metagenerator__\".\n";
+				return nullptr;
+			}
 			
-			if (object == nullptr)
+			auto object = PyObject_CallObject(func, nullptr);
+			if (!object)
 			{
 				log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned an exception.\n";
 				return nullptr;
@@ -61,7 +67,10 @@ namespace py
 			auto representation = PyObject_Repr(object);
 			auto str = PyUnicode_AsUTF8(representation);
 			
-			log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned \"" << str << "\".\n";
+			if (!str)
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned an empty string.\n";
+			else
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned \"" << str << "\".\n";
 			
 			return str;
 		}
