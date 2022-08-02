@@ -1,55 +1,59 @@
-#include <iostream>
+#include <cstdio>
 #include <getopt.h>
-#include <deque>
+
 #include "pycompile.hpp"
+#include "defines.h"
+#include "parsed_arguments.h"
 
-
-static std::deque<std::string> inputs, outputs;
-static const char* appname = "metapython";
 
 static constexpr const struct option long_opts[] = {
-		{ "input",  required_argument, nullptr, 'i' },
-		{ "output", required_argument, nullptr, 'o' },
-		{ nullptr,  no_argument,       nullptr, 0 }
+		{ "input",   required_argument, nullptr,       'i' },
+		{ "output",  required_argument, nullptr,       'o' },
+		{ "verbose", no_argument,       &verbose_flag, 'v' },
+		{ "help",    no_argument,       nullptr,       'h' },
+		{ nullptr,   no_argument,       nullptr,       0 }
 };
 
-static constexpr const char* short_opts = "i:o:";
+static constexpr const char* short_opts = "i:o:vh";
 
 void help(int exit_code = 0);
 
 void parse_args(int argc, char** argv);
 
+void print_compile_table();
+
 int main(int argc, char** argv)
 {
 	parse_args(argc, argv);
+	print_compile_table();
 	return 0;
 }
 
-#define C_RESET "\u001b[0m"
-
-#define C_BLACK "\u001b[30m"
-#define C_RED "\u001b[31m"
-#define C_GREEN "\u001b[32m"
-#define C_YELLOW "\u001b[33m"
-#define C_BLUE "\u001b[34m"
-#define C_MAGENTA "\u001b[35m"
-#define C_CYAN "\u001b[36m"
-
-#define C_BOLD_BLACK "\u001b[30;1m"
-#define C_BOLD_RED "\u001b[31;1m"
-#define C_BOLD_GREEN "\u001b[32;1m"
-#define C_BOLD_YELLOW "\u001b[33;1m"
-#define C_BOLD_BLUE "\u001b[34;1m"
-#define C_BOLD_MAGENTA "\u001b[35;1m"
-#define C_BOLD_CYAN "\u001b[36;1m"
-#define C_BOLD_WHITE "\u001b[37;1m"
+void print_compile_table()
+{
+	if (inputs.size() != outputs.size())
+	{
+		std::cerr << "An error occurred during arguments' parse: inputs.size() != outputs.size(): "
+		          << inputs.size() << " != " << outputs.size() << "\n"
+		                                                          "You must specify the same amount of inputs and outputs (check help)";
+		exit(-2);
+	}
+	std::cout << "Compile table:\n";
+	for (auto i = inputs.begin(), j = outputs.begin(); i != inputs.end() && j != outputs.end(); ++i, ++j)
+	{
+		std::cout << "\t" << *i << " -> " << *j << "\n";
+	}
+}
 
 void help(int exit_code)
 {
 	::printf(C_RESET "HELP\n\nUsage: " C_BOLD_MAGENTA "%s" C_RESET " [ARGS]...\n", appname);
 	::printf(C_RESET "Arguments:\n", appname);
-	::printf(C_RESET "  " C_GREEN "-i" C_RESET " | " C_BOLD_BLUE "--input " C_BOLD_YELLOW " <path>  " C_BOLD_WHITE "input path\n");
-	::printf(C_RESET "  " C_GREEN "-o" C_RESET " | " C_BOLD_BLUE "--output" C_BOLD_YELLOW " <path>  " C_BOLD_WHITE "output path\n\n");
+	::printf(C_RESET "  " C_GREEN "-i" C_RESET " | " C_BOLD_BLUE "--input  " C_BOLD_YELLOW " <path>  " C_BOLD_WHITE "input path\n");
+	::printf(C_RESET "  " C_GREEN "-o" C_RESET " | " C_BOLD_BLUE "--output " C_BOLD_YELLOW " <path>  " C_BOLD_WHITE "output path\n");
+	::printf(C_RESET "  " C_GREEN "-v" C_RESET " | " C_BOLD_BLUE "--verbose" C_BOLD_YELLOW "         " C_BOLD_WHITE "verbose output\n");
+	::printf(C_RESET "  " C_GREEN "-h" C_RESET " | " C_BOLD_BLUE "--help   " C_BOLD_YELLOW "         " C_BOLD_WHITE "get help\n");
+	::printf(C_RESET "\n");
 	::printf(C_RESET C_BOLD_WHITE "*You can use multiple -i and -o parameters which will compile multiple files.\n");
 	::printf(C_RESET C_BOLD_WHITE " But the amount of -i and -o arguments must be the same.\n");
 	::printf(C_RESET C_BOLD_WHITE " Also if you are using directory as input you must specify a directory as an\n");
@@ -78,7 +82,7 @@ void parse_args(int argc, char** argv)
 	if (argc < 2) help();
 	
 	int option_index = 0, c;
-	while ((c = getopt_long(argc, argv, short_opts, long_opts, &option_index)) < 0)
+	while ((c = getopt_long(argc, argv, short_opts, long_opts, &option_index)) >= 0)
 	{
 		switch (c)
 		{
@@ -89,6 +93,12 @@ void parse_args(int argc, char** argv)
 			case 'o':
 				outputs.push_back(::optarg);
 				break;
+			
+			case 'v':
+				break;
+			
+			case 'h':
+				help();
 			
 			default:
 				help(-1);

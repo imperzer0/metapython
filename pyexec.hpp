@@ -9,15 +9,9 @@
 #include <string>
 #include <python3.10/Python.h>
 
-#include "get_current_time.hpp"
-
-
-#define STR(exp) #exp
-
-#define DECL_FUNCTION(prefix, fn_name, postfix) static constexpr const char* fn_name##_signature = STR(prefix fn_name postfix); \
-prefix fn_name postfix
-
-#define FN_SIGNATURE(name) name##_signature
+#include "helpers.hpp"
+#include "defines.h"
+#include "parsed_arguments.h"
 
 
 namespace py
@@ -39,13 +33,16 @@ namespace py
 		/// and returns it's return
 		DECL_FUNCTION(inline const char*, execute, (const char* code, PyCompilerFlags* flags = nullptr, int optimize = 2))
 		{
-			log_stream << get_current_time() << FN_SIGNATURE(execute) << " compiling \n\"\"\"\n" << code << "\n\"\"\"...\n";
+			if (verbose_flag)
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " INFO: compiling code... \n" C_RED "CODE" C_RESET "{\n"
+				           << code
+				           << "\n}" C_RED "CODE" C_RESET "\n";
 			
 			auto code_obj = Py_CompileStringObject(code, PyUnicode_FromString("@meta@"), Py_file_input, flags, optimize);
 			if (!code_obj)
 			{
 				PyErr_Print();
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't parse your code.\n";
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " ERROR: can't parse your code.\n";
 				return nullptr;
 			}
 			
@@ -54,7 +51,7 @@ namespace py
 			if (!module)
 			{
 				PyErr_Print();
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't create a module from code.\n";
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " ERROR: can't create a module from code.\n";
 				return nullptr;
 			}
 			
@@ -63,7 +60,7 @@ namespace py
 			if (!dict)
 			{
 				PyErr_Print();
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " this module have no attributes.\n";
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " ERROR: this module have no attributes.\n";
 				return nullptr;
 			}
 			
@@ -72,7 +69,7 @@ namespace py
 			if (!func)
 			{
 				PyErr_Print();
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " can't find function __metagenerator__.\n";
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " ERROR: can't find function __metagenerator__.\n";
 				return nullptr;
 			}
 			
@@ -81,7 +78,8 @@ namespace py
 			
 			if (!PyCallable_Check(func))
 			{
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " <WARNING> __metagenerator__ is not a function.\n";
+				if (verbose_flag)
+					log_stream << get_current_time() << FN_SIGNATURE(execute) << " WARNING: __metagenerator__ is not a function.\n";
 				object = func;
 			}
 			else
@@ -93,7 +91,7 @@ namespace py
 			if (!object)
 			{
 				PyErr_Print();
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned an exception.\n";
+				log_stream << get_current_time() << FN_SIGNATURE(execute) << " ERROR: returned an exception.\n";
 				return nullptr;
 			}
 			
@@ -107,10 +105,11 @@ namespace py
 			
 			auto str = PyUnicode_AsUTF8(representation);
 			
-			if (!str)
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned an empty string.\n";
-			else
-				log_stream << get_current_time() << FN_SIGNATURE(execute) << " returned \"" << str << "\".\n";
+			if (verbose_flag)
+				if (!str)
+					log_stream << get_current_time() << FN_SIGNATURE(execute) << " INFO: returned an empty string.\n";
+				else
+					log_stream << get_current_time() << FN_SIGNATURE(execute) << " INFO: returned \"" << str << "\".\n";
 			
 			return str;
 		}

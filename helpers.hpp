@@ -2,8 +2,8 @@
 // Created by imper on 7/31/22.
 //
 
-#ifndef METAPYTHON_GET_CURRENT_TIME_HPP
-#define METAPYTHON_GET_CURRENT_TIME_HPP
+#ifndef METAPYTHON_HELPERS_HPP
+#define METAPYTHON_HELPERS_HPP
 
 #include <ctime>
 
@@ -22,4 +22,4 @@ inline static char* get_current_time()
 	return buffer;
 }
 
-#endif //METAPYTHON_GET_CURRENT_TIME_HPP
+#endif //METAPYTHON_HELPERS_HPP

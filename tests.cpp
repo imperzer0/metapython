@@ -16,6 +16,19 @@ void test_code_execution(const std::string& code, const std::string& ans)
 	test(exec.execute(code.c_str()), ans);
 }
 
+#define TEST
+
+#include "pycompile.hpp"
+
+
+void test_compilation(const std::string& in, const std::string& out)
+{
+	py::pycompile compile(in, out, std::cout);
+	compile.compile();
+}
+
+
+
 int main(int argc, char** argv)
 {
 	test_code_execution(
@@ -48,6 +61,10 @@ def __metagenerator__():
 )CODE",
 			"100"
 	);
+	
+	std::cout << py::pycompile::extension_of("lalala") << "\n";
+	std::cout << py::pycompile::extension_of(".lalala") << "\n";
+	std::cout << py::pycompile::extension_of("la.la") << "\n";
 	
 	return 0;
 }
