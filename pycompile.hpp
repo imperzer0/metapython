@@ -6,6 +6,7 @@
 #define METAPYTHON_PYCOMPILE_HPP
 
 #include <string>
+#include <list>
 
 #include "pyexec.hpp"
 
@@ -20,7 +21,7 @@ namespace py
 		
 		
 		/// Compiles all metacode in input_filename file and writes the output to output_filename
-		DECL_FUNCTION(inline void, compile, ())
+		DECL_FUNCTION(inline void, compile, (PyCompilerFlags * flags = nullptr, int optimize = 2))
 		{
 			if (!check_files_extensions())
 				log_stream << get_current_time() << FN_SIGNATURE(compile)
@@ -43,7 +44,53 @@ namespace py
 				return;
 			}
 			
-			/// TODO: parse ifile, search for static section, execute it and write the result into ofile
+			if (verbose_flag)
+				log_stream << get_current_time() << FN_SIGNATURE(compile)
+				           << " INFO: Parsing the file \"" << input_filename << "\"...\n";
+			
+			std::list<char> quot_queue;
+			
+			size_t zaminach_count = 0;
+			bool zaminach_area = false;
+			std::string metacode;
+			char c;
+			while (true)
+			{
+				if (::feof(ifile)) break;
+				
+				c = ::fread(&c, sizeof c, 1, ifile);
+				
+				if (zaminach_area) metacode += c;
+				
+				if (c == '\'' || c == '"') // toggle string literals
+				{
+					if (quot_queue.empty())
+						quot_queue.push_back(c);
+					else if (quot_queue.back() == c)
+						quot_queue.pop_back();
+				}
+				
+				if (c == '@' && quot_queue.empty()) // check for @@@ not in the string literal
+					++zaminach_count;
+				else zaminach_count = 0;
+				
+				if (zaminach_count == 3)
+				{
+					if (!(zaminach_area = !zaminach_area)) // trigger once on ending zaminach
+					{
+						py::pyexec exec(log_stream);
+						metacode.pop_back();
+						metacode.pop_back();
+						auto res = exec.execute(metacode.c_str(), flags, optimize);
+						
+						if (verbose_flag)
+							log_stream << get_current_time() << FN_SIGNATURE(compile)
+							           << " INFO: Writing execution result into \"" << output_filename << "\"...\n";
+					}
+				}
+				
+				if (!zaminach_area) metacode.clear(); // clear string if not in zaminach area
+			}
 		}
 		
 		inline ~pycompile() { }
