@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <getopt.h>
+#include <dirent.h>
 
 #include "pycompile.hpp"
 #include "defines.h"
@@ -16,17 +17,117 @@ static constexpr const struct option long_opts[] = {
 
 static constexpr const char* short_opts = "i:o:vh";
 
+
+std::deque<std::basic_string<char>> tmpins, tmpouts;
+
+
 void help(int exit_code = 0);
 
 void parse_args(int argc, char** argv);
 
 void print_compile_table();
 
+void compile_all_files();
+
 int main(int argc, char** argv)
 {
 	parse_args(argc, argv);
 	print_compile_table();
+	compile_all_files();
 	return 0;
+}
+
+
+auto system(const std::string& command)
+{
+	return ::system(command.c_str());
+}
+
+void expand_directory_into_list(const std::string& input_prefix, const std::string& output_prefix, const std::string& directory = "")
+{
+	DIR* dir;
+	struct dirent* entry;
+	
+	if (!(dir = opendir((input_prefix + directory).c_str())))
+		return;
+	
+	while ((entry = readdir(dir)))
+	{
+		auto path = directory + "/" + entry->d_name;
+		if (entry->d_type == DT_DIR)
+		{
+			if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+				continue;
+			
+			::system("mkdir -p" + std::string(verbose_flag ? "v" : "") + " \"" + output_prefix + path + "\"");
+			expand_directory_into_list(input_prefix, output_prefix, path);
+		}
+		else
+		{
+			inputs.push_back(input_prefix + path);
+			outputs.push_back(output_prefix + path + ".py");
+		}
+	}
+	closedir(dir);
+	
+}
+
+void compile_all_files()
+{
+	tmpins = inputs;
+	tmpouts = outputs;
+	inputs = outputs = { };
+	
+	struct stat sti, sto;
+	for (auto i = tmpins.begin(), o = tmpouts.begin(); i != tmpins.end() && o != tmpouts.end(); ++i, ++o)
+	{
+		sti = { };
+		sto = { };
+		int resi = ::stat(i->c_str(), &sti);
+		int reso = ::stat(o->c_str(), &sto);
+		
+		if (resi < 0)
+		{
+			std::cerr << "Can't find filesystem entry \"" << *i << "\"\n";
+			::exit(-4);
+		}
+		
+		if (S_ISDIR(sti.st_mode))
+		{
+			if (reso >= 0 && !S_ISDIR(sto.st_mode))
+			{
+				std::cerr << "\"" << *i << "\" is a directory but \"" << *o << "\" in not (and can't be).";
+				::exit(-3);
+			}
+			else if (reso < 0) ::system("mkdir -p" + std::string(verbose_flag ? "v" : "") + " \"" + *o + "\"");
+			
+			expand_directory_into_list(*i, *o);
+		}
+		else if (S_ISREG(sti.st_mode))
+		{
+			if (S_ISREG(sto.st_mode) || reso < 0)
+			{
+				inputs.push_back(*i);
+				outputs.push_back(*o);
+			}
+			else
+			{
+				std::cerr << "\"" << *i << "\" is a regular file but \"" << *o << "\" in not (and can't be).";
+				::exit(-6);
+			}
+		}
+		else
+		{
+			std::cerr << "\"" << *i << "\" is not a file or directory\n";
+			::exit(-5);
+		}
+	}
+	
+	for (auto i = inputs.begin(), o = outputs.begin(); i != inputs.end() && o != outputs.end(); ++i, ++o)
+	{
+		py::pycompile compile(*i, *o, std::cerr);
+		compile.compile();
+	}
 }
 
 void print_compile_table()
@@ -36,12 +137,12 @@ void print_compile_table()
 		std::cerr << "An error occurred during arguments' parse: inputs.size() != outputs.size(): "
 		          << inputs.size() << " != " << outputs.size() << "\n"
 		                                                          "You must specify the same amount of inputs and outputs (check help)";
-		exit(-2);
+		::exit(-2);
 	}
 	std::cout << "Compile table:\n";
-	for (auto i = inputs.begin(), j = outputs.begin(); i != inputs.end() && j != outputs.end(); ++i, ++j)
+	for (auto i = inputs.begin(), o = outputs.begin(); i != inputs.end() && o != outputs.end(); ++i, ++o)
 	{
-		std::cout << "\t" << *i << " -> " << *j << "\n";
+		std::cout << "\t" << *i << " -> " << *o << "\n";
 	}
 }
 

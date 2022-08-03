@@ -17,7 +17,7 @@ namespace py
 	{
 	public:
 		inline pycompile(const std::string& input_filename, const std::string& output_filename, std::ostream& log_stream)
-				: input_filename(input_filename), output_filename(input_filename), log_stream(log_stream) { }
+				: input_filename(input_filename), output_filename(output_filename), log_stream(log_stream) { }
 		
 		
 		/// Compiles all metacode in input_filename file and writes the output to output_filename
@@ -58,9 +58,10 @@ namespace py
 			{
 				if (::feof(ifile)) break;
 				
-				c = ::fread(&c, sizeof c, 1, ifile);
+				::fread(&c, sizeof c, 1, ifile);
 				
 				if (zaminach_area) metacode += c;
+				else ::fwrite(&c, sizeof c, 1, ofile);
 				
 				if (c == '\'' || c == '"') // toggle string literals
 				{
@@ -81,16 +82,31 @@ namespace py
 						py::pyexec exec(log_stream);
 						metacode.pop_back();
 						metacode.pop_back();
-						auto res = exec.execute(metacode.c_str(), flags, optimize);
+						metacode.pop_back();
+						
+						std::string res = exec.execute(metacode.c_str(), flags, optimize);
 						
 						if (verbose_flag)
 							log_stream << get_current_time() << FN_SIGNATURE(compile)
 							           << " INFO: Writing execution result into \"" << output_filename << "\"...\n";
+						
+						::fwrite(res.c_str(), sizeof(char), res.size(), ofile);
+					}
+					else
+					{
+						::fflush(ofile);
+						struct stat st;
+						::stat(output_filename.c_str(), &st);
+						::ftruncate(ofile->_fileno, st.st_size - 3);
+						::fseek(ofile, -3, SEEK_CUR);
 					}
 				}
 				
 				if (!zaminach_area) metacode.clear(); // clear string if not in zaminach area
 			}
+			
+			::fclose(ifile);
+			::fclose(ofile);
 		}
 		
 		inline ~pycompile() { }
@@ -107,7 +123,7 @@ namespace py
 		std::ostream& log_stream;
 		
 		#ifdef TEST
-	public:
+		public:
 		#endif
 		
 		inline static std::string extension_of(const std::string& filename)
