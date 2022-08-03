@@ -54,12 +54,8 @@ namespace py
 			bool zaminach_area = false;
 			std::string metacode;
 			char c;
-			while (true)
+			while (!::feof(ifile) && ::fread(&c, sizeof c, 1, ifile))
 			{
-				if (::feof(ifile)) break;
-				
-				::fread(&c, sizeof c, 1, ifile);
-				
 				if (zaminach_area) metacode += c;
 				else ::fwrite(&c, sizeof c, 1, ofile);
 				
