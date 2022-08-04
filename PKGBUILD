@@ -9,10 +9,11 @@ arch=("x86_64")
 license=('GPL3')
 depends=("openssl" "python>=3.10")
 makedepends=("cmake>=3.0" "python>=3.10")
+optdepends=("bash-completion")
 
 _srcprefix="local:/"
 _libfiles=("CMakeLists.txt" "main.cpp" "pycompile.hpp" "pyexec.hpp" "helpers.hpp"
-           "parsed_arguments.cpp" "parsed_arguments.h" "defines.h" "tests.cpp")
+           "parsed_arguments.cpp" "parsed_arguments.h" "defines.h" "tests.cpp" "$pkgname-completion.bash")
 
 for _libfile in ${_libfiles[@]}
 {
@@ -36,10 +37,14 @@ build()
 package()
 {
 	install -Dm755 $pkgname "$pkgdir/usr/bin/$pkgname"
+	install -Dm644 "$pkgname-completion.bash" "$pkgdir/usr/share/bash-completion/completions/$pkgname"
 }
 
 notarch_package()
 {
 	cp -f $pkgname "$pkgdir/usr/bin/$pkgname"
 	chmod 755 "$pkgdir/usr/bin/$pkgname"
+
+	cp -f "$pkgname-completions.bash" "$pkgdir/usr/share/bash-completion/completions/$pkgname"
+	chmod 644 "$pkgdir/usr/share/bash-completion/completions/$pkgname"
 }
