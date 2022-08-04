@@ -12,7 +12,6 @@
 
 extern std::deque<std::string> inputs;
 extern std::deque<std::string> outputs;
-extern const char* appname;
 extern int verbose_flag;
 
 #endif //METAPYTHON_PARSED_ARGUMENTS_H

@@ -71,3 +71,28 @@ Turns into
 ```python
 result = (1, 2, 4, 5)
 ```
+
+## Installation
+
+### From AUR (Arch-based distros)
+
+```bash
+yay -Sy metapython
+```
+
+### From Git repository
+
+```bash
+git clone https://github.com/imperzer0/metapython.git
+cd metapython
+```
+
+#### Archlinux
+```bash
+makepkg -sif
+```
+
+#### Other distributions
+```bash
+sudo bash -c ". ./PKGBUILD && build && notarch_package"
+```

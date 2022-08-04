@@ -37,4 +37,12 @@
 #define FN_SIGNATURE(name) name##_signature
 
 
+#ifndef APPLICATION_VERSION
+#define APPLICATION_VERSION "debug"
+#endif
+
+#ifndef APPLICATION_NAME
+#define APPLICATION_NAME "metapython"
+#endif
+
 #endif //METAPYTHON_DEFINES_H
